@@ -1,4 +1,5 @@
 import json
+import os
 from collections import defaultdict
 from typing import TextIO
 import bz2, gzip, lzma, io
@@ -54,13 +55,16 @@ def test_basics(testdir, tmp_path, pytestconfig):
         """
     )
 
-    log_file = tmp_path / "log.json"
+    os.environ["PYTEST_REPORT_DUMMY_VAR"] = "dummy"
+    log_file = tmp_path / "${PYTEST_REPORT_DUMMY_VAR}/log.json"
 
     result = testdir.runpytest("--report-log", str(log_file))
     assert result.ret == pytest.ExitCode.TESTS_FAILED
-    result.stdout.fnmatch_lines([f"* generated report log file: {log_file}*"])
+    expected_path = Path(str(log_file).replace("${PYTEST_REPORT_DUMMY_VAR}", "dummy"))
+    assert expected_path.exists()
+    result.stdout.fnmatch_lines([f"* generated report log file: {expected_path}*"])
 
-    json_objs = [json.loads(x) for x in log_file.read_text().splitlines()]
+    json_objs = [json.loads(x) for x in Path(expected_path).read_text().splitlines()]
     if pytest.version_tuple[0] < 8:
         assert len(json_objs) == 14
     else:
@@ -102,15 +106,11 @@ def test_basics(testdir, tmp_path, pytestconfig):
     # already.
     pm = pytestconfig.pluginmanager
     for json_obj in json_objs[1:-1]:
-        rep = pm.hook.pytest_report_from_serializable(
-            config=pytestconfig, data=json_obj
-        )
+        rep = pm.hook.pytest_report_from_serializable(config=pytestconfig, data=json_obj)
         assert isinstance(rep, BaseReport)
 
 
-@pytest.mark.parametrize(
-    "exclude", [True, False], ids=["exclude on pass", "include logs on pass"]
-)
+@pytest.mark.parametrize("exclude", [True, False], ids=["exclude on pass", "include logs on pass"])
 def test_exclude_logs_for_passing_tests(testdir, tmp_path, exclude):
     passing_log_entry = "THIS TEST PASSED!"
     failing_log_entry = "THIS TEST FAILED!"
