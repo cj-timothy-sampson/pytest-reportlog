@@ -1,4 +1,5 @@
 import json
+import os.path
 from typing import Dict, Any, TextIO
 
 from _pytest.pathlib import Path
@@ -26,7 +27,7 @@ def pytest_addoption(parser):
 def pytest_configure(config):
     report_log = config.option.report_log
     if report_log and not hasattr(config, "workerinput"):
-        config._report_log_plugin = ReportLogPlugin(config, Path(report_log))
+        config._report_log_plugin = ReportLogPlugin(config, Path(os.path.expandvars(report_log)))
         config.pluginmanager.register(config._report_log_plugin)
 
 

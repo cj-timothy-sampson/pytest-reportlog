@@ -1,4 +1,5 @@
 import json
+import os
 from collections import defaultdict
 from typing import TextIO
 import bz2, gzip, lzma, io
@@ -55,13 +56,16 @@ def test_basics(testdir, tmp_path, pytestconfig):
         """
     )
 
-    log_file = tmp_path / "log.json"
+    os.environ["PYTEST_REPORT_DUMMY_VAR"] = "dummy"
+    log_file = tmp_path / "${PYTEST_REPORT_DUMMY_VAR}/log.json"
 
     result = testdir.runpytest("--report-log", str(log_file))
     assert result.ret == pytest.ExitCode.TESTS_FAILED
-    result.stdout.fnmatch_lines([f"* generated report log file: {log_file}*"])
+    expected_path = Path(str(log_file).replace("${PYTEST_REPORT_DUMMY_VAR}", "dummy"))
+    assert expected_path.exists()
+    result.stdout.fnmatch_lines([f"* generated report log file: {expected_path}*"])
 
-    json_objs = [json.loads(x) for x in log_file.read_text().splitlines()]
+    json_objs = [json.loads(x) for x in Path(expected_path).read_text().splitlines()]
     assert len(json_objs) == 14
 
     # first line should be the session_start
