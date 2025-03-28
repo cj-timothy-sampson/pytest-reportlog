@@ -13,8 +13,6 @@ setup(
     platforms="any",
     python_requires=">=3.9",
     install_requires=["pytest"],
-    use_scm_version={"write_to": "src/pytest_reportlog/_version.py"},
-    setup_requires=["setuptools_scm"],
     url="https://github.com/pytest-dev/pytest-reportlog",
     license="MIT",
     author="Bruno Oliveira",
